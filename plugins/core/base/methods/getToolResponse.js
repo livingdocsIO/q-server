@@ -61,9 +61,8 @@ exports.getToolResponse = async function(options, request, h) {
   }
 
   // add Cache-Control directives from config if we do not have no-cache set in the tool response
-  const responseCacheControl = Wreck.parseCacheControl(
-    toolResponse.res.headers["cache-control"]
-  );
+  const CCHeader = toolResponse.res.headers["cache-control"] || ""
+  const responseCacheControl = Wreck.parseCacheControl(CCHeader);
   if (responseCacheControl["no-cache"] !== true) {
     const configCacheControl = await request.server.methods.getCacheControlDirectivesFromConfig(
       options.get("/cache/cacheControl")
