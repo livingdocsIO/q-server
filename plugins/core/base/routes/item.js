@@ -178,7 +178,11 @@ module.exports = {
 
       const oldDoc = await request.server.methods.db.item.getById({
         id: request.payload._id,
-        ignoreInactive: true
+        ignoreInactive: true,
+        session: {
+          credentials: request.auth.credentials,
+          artifacts: request.auth.artifacts
+        }
       });
 
       // if the active state change to true, we set activateDate
