@@ -56,7 +56,7 @@ exports.getToolResponse = async function(options, request, h) {
   const response = h.response(toolResponse.payload);
 
   // set all the headers from the tool response
-  for (let header in toolResponse.res.headers) {
+  for (const header in toolResponse.res.headers) {
     response.header(header, toolResponse.res.headers[header]);
   }
 
@@ -67,29 +67,19 @@ exports.getToolResponse = async function(options, request, h) {
     const configCacheControl = await request.server.methods.getCacheControlDirectivesFromConfig(
       options.get("/cache/cacheControl")
     );
-    const defaultCacheControl = Wreck.parseCacheControl(
-      configCacheControl.join(",")
-    );
 
-    for (directive of Object.keys(defaultCacheControl)) {
+    const defaultCacheControl = Wreck.parseCacheControl(configCacheControl.join(","));
+
+    for (const directive of Object.keys(defaultCacheControl)) {
       // only add the default cache control if the directive is not present on the response from the tool
       if (!responseCacheControl.hasOwnProperty(directive)) {
-        response.header(
-          "cache-control",
-          `${directive}=${defaultCacheControl[directive]}`,
-          {
-            append: true
-          }
-        );
+        const directiveValue = `${directive}=${defaultCacheControl[directive]}`
+        response.header("cache-control", directiveValue,{ append: true});
       }
     }
   }
 
   // strip whitespace from cache-control header value to be consistent
-  response.header(
-    "cache-control",
-    response.headers["cache-control"].replace(/ /g, "")
-  );
-
+  response.header("cache-control", response.headers["cache-control"].replace(/ /g, ""));
   return response;
 };
