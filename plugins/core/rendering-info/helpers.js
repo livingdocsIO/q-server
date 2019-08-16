@@ -6,35 +6,24 @@ const Boom = require("@hapi/boom");
 const deleteMetaProperties = require("../../../helper/meta-properties")
   .deleteMetaProperties;
 
-async function getWithResolvedFunction(
-  renderingInfoPart,
-  item,
-  toolRuntimeConfig
-) {
-  const promises = renderingInfoPart.map(async renderingInfoPartItem => {
-    if (renderingInfoPartItem instanceof Function) {
-      return await renderingInfoPartItem.apply(this, [item, toolRuntimeConfig]);
-    }
-    return renderingInfoPartItem;
-  });
-
-  return Promise.all(promises);
+function getWithResolvedFunction (renderingInfoPart, item, toolRuntimeConfig) {
+  return Promise.all(renderingInfoPart.map((renderingInfoPartItem) => {
+    if (!(renderingInfoPartItem instanceof Function)) return renderingInfoPartItem
+    return renderingInfoPartItem.call(this, item, toolRuntimeConfig)
+  }))
 }
 
-function getWithResolvedNameProperty(
-  typePath,
-  renderingInfoPart,
-  item,
-  toolRuntimeConfig
-) {
-  return renderingInfoPart.map(renderingInfoPartItem => {
-    if (renderingInfoPartItem.name !== undefined) {
-      renderingInfoPartItem.path = `/tools/${item.tool}/${typePath}/${
-        renderingInfoPartItem.name
-      }`;
+function getWithResolvedNameProperty (typePath, renderingInfoPart, item, toolRuntimeConfig) {
+  for (const segment of renderingInfoPart) {
+    if (segment.name) {
+      segment.path = `/tools/${item.tool}/${typePath}/${segment.name}`
+      segment.name = undefined
+    } else if (segment.path) {
+      segment.path = `/tools/${item.tool}${segment.path.replace(/^\/?/, '/')}`
     }
-    return renderingInfoPartItem;
-  });
+  }
+
+  return renderingInfoPart
 }
 
 async function getRenderingInfo(
@@ -45,13 +34,13 @@ async function getRenderingInfo(
   targetConfig,
   itemStateInDb
 ) {
-  let requestUrl;
-  if (endpointConfig.hasOwnProperty("path")) {
+  let requestUrl
+  if (endpointConfig.hasOwnProperty('path')) {
     requestUrl = `${baseUrl}${endpointConfig.path}`;
-  } else if (endpointConfig.hasOwnProperty("url")) {
-    requestUrl = endpointConfig.url;
+  } else if (endpointConfig.hasOwnProperty('url')) {
+    requestUrl = endpointConfig.url
   } else {
-    throw new Error("Endpoint has no path nor url configured");
+    throw new Error('Endpoint has no path nor url configured');
   }
 
   // add _id, createdDate and updatedDate as query params to rendering info request
@@ -92,60 +81,34 @@ async function getRenderingInfo(
   let renderingInfo = await response.json();
 
   // check if the tool config has additional renderingInfo and apply it if so
-  if (endpointConfig.additionalRenderingInfo) {
-    renderingInfo = deepmerge(
-      renderingInfo,
-      endpointConfig.additionalRenderingInfo,
-      {
-        arrayMerge: (destArr, srcArr) => {
-          return srcArr.concat(destArr);
-        }
-      }
-    );
-  }
-
-  if (targetConfig.additionalRenderingInfo) {
-    renderingInfo = deepmerge(
-      renderingInfo,
-      targetConfig.additionalRenderingInfo,
-      {
-        arrayMerge: (destArr, srcArr) => {
-          return srcArr.concat(destArr);
-        }
-      }
-    );
-  }
-
-  const renderingInfoTypesToResolve = [
+  renderingInfo = deepmerge(
+    renderingInfo,
+    endpointConfig.additionalRenderingInfo,
+    targetConfig.additionalRenderingInfo,
     {
-      name: "stylesheets",
-      path: "stylesheet"
-    },
-    {
-      name: "scripts",
-      path: "script"
+      arrayMerge: (destArr, srcArr) => {
+        return [...srcArr, ...destArr]
+      }
     }
-  ];
-  for (const type of renderingInfoTypesToResolve) {
-    if (
-      renderingInfo[type.name] !== undefined &&
-      renderingInfo[type.name].length > 0
-    ) {
-      renderingInfo[type.name] = await getWithResolvedFunction(
-        renderingInfo[type.name],
-        item,
-        toolRuntimeConfig
-      );
+  )
 
-      renderingInfo[type.name] = getWithResolvedNameProperty(
-        type.path,
-        renderingInfo[type.name],
-        item,
-        toolRuntimeConfig
-      );
-    }
-  }
-  return renderingInfo;
+  renderingInfo.stylesheets = await getWithResolvedFunction(
+    renderingInfo.stylesheets, item, toolRuntimeConfig
+  )
+
+  renderingInfo.stylesheets = getWithResolvedNameProperty(
+    'stylesheet', renderingInfo.stylesheets, item, toolRuntimeConfig
+  )
+
+  renderingInfo.scripts = await getWithResolvedFunction(
+    renderingInfo.scripts, item, toolRuntimeConfig
+  )
+
+  renderingInfo.scripts = getWithResolvedNameProperty(
+    'script', renderingInfo.scripts, item, toolRuntimeConfig
+  )
+
+  return renderingInfo
 }
 
 function getCompiledToolRuntimeConfig(
