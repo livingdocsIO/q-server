@@ -4,6 +4,10 @@ module.exports = {
   path: "/search",
   method: "GET",
   options: {
+    auth: "q-auth",
+    cors: {
+      credentials: true
+    },
     validate: {
       query: {
         limit: Joi.number().optional(),
