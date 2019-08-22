@@ -208,7 +208,7 @@ module.exports = {
           target: target
         });
 
-        return await getRenderingInfo(
+        return getRenderingInfo(
           item,
           baseUrl,
           toolEndpointConfig,
