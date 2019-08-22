@@ -13,6 +13,10 @@ function getGetRenderingInfoRoute(config) {
     method: "GET",
     path: "/rendering-info/{id}/{target}",
     options: {
+      auth: {
+        strategies: ["q-auth"],
+        mode: "optional"
+      },
       validate: {
         params: {
           id: Joi.string().required(),
@@ -33,7 +37,7 @@ function getGetRenderingInfoRoute(config) {
         "Returns rendering information for the given graphic id and target (as configured in the environment).",
       tags: ["api", "reader-facing"]
     },
-    handler: async function(request, h) {
+    async handler (request, h) {
       let requestToolRuntimeConfig = {};
 
       if (request.query.toolRuntimeConfig) {
@@ -90,6 +94,10 @@ function getPostRenderingInfoRoute(config) {
     method: "POST",
     path: "/rendering-info/{target}",
     options: {
+      auth: {
+        strategies: ["q-auth"],
+        mode: "optional"
+      },
       cache: false,
       validate: {
         params: {
@@ -159,15 +167,7 @@ module.exports = {
       new Error("server.settings.app.tools.get needs to be a function")
     );
 
-    server.method(
-      "renderingInfo.getRenderingInfoForItem",
-      async (
-        item,
-        target,
-        requestToolRuntimeConfig,
-        ignoreInactive,
-        itemStateInDb
-      ) => {
+    server.method("renderingInfo.getRenderingInfoForItem", async (item, target, requestToolRuntimeConfig, ignoreInactive, itemStateInDb) => {
         const endpointConfig = server.settings.app.tools.get(
           `/${item.tool}/endpoint`,
           { target: target }
@@ -182,9 +182,7 @@ module.exports = {
         }
 
         const targetConfig = server.settings.app.targets.get(`/${target}`);
-        if (!targetConfig) {
-          throw new Error(`${target} not configured`);
-        }
+        if (!targetConfig) throw new Error(`${target} not configured`);
 
         let toolEndpointConfig;
         if (endpointConfig instanceof Function) {
