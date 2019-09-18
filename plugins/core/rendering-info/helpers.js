@@ -92,21 +92,25 @@ async function getRenderingInfo(
     }
   )
 
-  renderingInfo.stylesheets = await getWithResolvedFunction(
-    renderingInfo.stylesheets, item, toolRuntimeConfig
-  )
+  if (renderingInfo.stylesheets) {
+    renderingInfo.stylesheets = await getWithResolvedFunction(
+      renderingInfo.stylesheets, item, toolRuntimeConfig
+    )
 
-  renderingInfo.stylesheets = getWithResolvedNameProperty(
-    'stylesheet', renderingInfo.stylesheets, item, toolRuntimeConfig
-  )
+    renderingInfo.stylesheets = getWithResolvedNameProperty(
+      'stylesheet', renderingInfo.stylesheets, item, toolRuntimeConfig
+    )
+  }
 
-  renderingInfo.scripts = await getWithResolvedFunction(
-    renderingInfo.scripts, item, toolRuntimeConfig
-  )
+  if (renderingInfo.scripts) {
+    renderingInfo.scripts = await getWithResolvedFunction(
+      renderingInfo.scripts, item, toolRuntimeConfig
+    )
 
-  renderingInfo.scripts = getWithResolvedNameProperty(
-    'script', renderingInfo.scripts, item, toolRuntimeConfig
-  )
+    renderingInfo.scripts = getWithResolvedNameProperty(
+      'script', renderingInfo.scripts, item, toolRuntimeConfig
+    )
+  }
 
   return renderingInfo
 }
