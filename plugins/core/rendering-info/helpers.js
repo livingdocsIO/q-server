@@ -83,8 +83,8 @@ async function getRenderingInfo(
   // check if the tool config has additional renderingInfo and apply it if so
   renderingInfo = deepmerge(
     renderingInfo,
-    endpointConfig.additionalRenderingInfo,
-    targetConfig.additionalRenderingInfo,
+    endpointConfig.additionalRenderingInfo || {},
+    targetConfig.additionalRenderingInfo || {},
     {
       arrayMerge: (destArr, srcArr) => {
         return [...srcArr, ...destArr]
