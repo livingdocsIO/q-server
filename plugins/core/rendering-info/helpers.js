@@ -56,7 +56,9 @@ async function getRenderingInfo(
 
   // strip the meta properties before sending the item to the tool service
   const body = {
-    item: deleteMetaProperties(clone(item)),
+    ns: item._ns,
+    id: item._id,
+    item: deleteMetaProperties(item),
     itemStateInDb: itemStateInDb,
     toolRuntimeConfig: toolRuntimeConfig
   };

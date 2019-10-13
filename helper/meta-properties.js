@@ -1,4 +1,5 @@
-const metaProperties = [
+const metaProperties = new Set([
+  '_ns',
   '_id',
   '_rev',
   'tool',
@@ -15,13 +16,14 @@ const metaProperties = [
   'activateDate',
   'deactivateDate',
   'publication'
-];
+]);
 
 const deleteMetaProperties = function(item) {
-  for (var i = 0; i < metaProperties.length; i++) {
-    delete item[metaProperties[i]];
+  const obj = {}
+  for (const key of Object.keys(item)) {
+    if (!metaProperties.has(key)) obj[key] = item[key]
   }
-  return item;
+  return obj
 }
 
 module.exports = {
