@@ -1,4 +1,4 @@
-const Joi = require("@hapi/joi");
+const Joi = require("@hapi/joi")
 
 module.exports = {
   getGetToolsRoute: function() {
@@ -8,6 +8,10 @@ module.exports = {
       options: {
         description: "Returns tool name translations for given language",
         tags: ["api", "editor", "non-critical"],
+        auth: {
+          strategies: ["q-auth"],
+          mode: "optional"
+        },
         validate: {
           params: {
             lng: Joi.string().required()
@@ -15,18 +19,19 @@ module.exports = {
         }
       },
       handler: (request, h) => {
-        const tools = request.server.settings.app.tools.get("");
+        const criteria = request.auth ? request.auth.credentials : {};
+        const tools = request.server.settings.app.tools.get("", criteria)
 
         // compute a translation.json file for use by i18next for the given language
         // containing the tool name and it's localized label.
-        let translations = {};
-        for (let toolName in tools) {
-          const tool = tools[toolName];
+        const translations = {}
+        for (const toolName in tools) {
+          const tool = tools[toolName]
           if (
             !tool.editor.hasOwnProperty("label_locales") ||
             !tool.editor.label_locales.hasOwnProperty(request.params.lng)
           ) {
-            continue;
+            continue
           }
           translations[toolName] =
             tool.editor.label_locales[request.params.lng];
@@ -43,6 +48,10 @@ module.exports = {
       options: {
         description: "Returns editor translations for given language",
         tags: ["api", "editor", "non-critical"],
+        auth: {
+          strategies: ["q-auth"],
+          mode: "optional"
+        },
         validate: {
           params: {
             lng: Joi.string().required()
@@ -51,12 +60,22 @@ module.exports = {
       },
       handler: (request, h) => {
         // compute a translation.json file for use by i18next for the given language
-        let translations = {};
+        const translations = {};
+        let previewSizes;
 
-        const previewSizes = options.editorConfig.previewSizes;
+        const criteria = request.auth ? request.auth.credentials : {};
+
+        // check for the get function to be backwards compatible if the config object gets
+        // passed directly instead of providing a Confidence getter
+        if (options.editorConfig.get instanceof Function) {
+          previewSizes = options.editorConfig.get('/previewSizes', criteria);
+        } else {
+          previewSizes = options.editorConfig.previewSizes;
+        }
+
         if (previewSizes) {
           translations.preview = {};
-          for (let previewSizeName in previewSizes) {
+          for (const previewSizeName in previewSizes) {
             const previewSize = previewSizes[previewSizeName];
             if (
               previewSize.hasOwnProperty("label_locales") &&

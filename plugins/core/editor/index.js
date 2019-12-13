@@ -1,19 +1,14 @@
 const Hoek = require("@hapi/hoek");
 
-const defaults = {
-  editorConfig: {}
-};
-
 module.exports = {
   name: "q-editor-api",
   register: async function(server, options) {
-    const settings = Hoek.applyToDefaults(defaults, options);
     server.route([
       require("./routes/targets"),
       require("./routes/tools"),
       require("./routes/tools-ordered-by-user-usage"),
       require("./routes/locales").getGetToolsRoute(),
-      require("./routes/locales").getGetEditorConfigRoute(settings)
+      require("./routes/locales").getGetEditorConfigRoute(options)
     ]);
 
     server.route({
@@ -21,10 +16,15 @@ module.exports = {
       method: "GET",
       options: {
         description: "Returns configuration for Q Editor",
-        tags: ["api", "editor"]
+        tags: ["api", "editor"],
+        auth: {
+          strategies: ['q-auth'],
+          mode: 'optional'
+        }
       },
       handler: (request, h) => {
-        return settings.editorConfig;
+        const criteria = request.auth ? request.auth.credentials : {};
+        return options.editorConfig.get('/', criteria)
       }
     });
   }
