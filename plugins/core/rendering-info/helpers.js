@@ -117,10 +117,27 @@ async function getRenderingInfo(
   return renderingInfo
 }
 
-function getCompiledToolRuntimeConfig(
+function getWithResolvedToolRuntimeConfigFunction({toolRuntimeConfig, item, session}) {
+  if (!(toolRuntimeConfig instanceof Function)) return toolRuntimeConfig
+  return toolRuntimeConfig.call(this, {item, session})
+}
+
+async function getCompiledToolRuntimeConfig(
   item,
-  { serverWideToolRuntimeConfig, toolEndpointConfig, requestToolRuntimeConfig }
+  {
+    serverWideToolRuntimeConfig,
+    targetToolRuntimeConfig,
+    toolEndpointToolRuntimeConfig,
+    requestToolRuntimeConfig
+  },
+  session
 ) {
+
+  serverWideToolRuntimeConfig = await getWithResolvedToolRuntimeConfigFunction({toolRuntimeConfig: serverWideToolRuntimeConfig, item, session})
+  targetToolRuntimeConfig = await getWithResolvedToolRuntimeConfigFunction({toolRuntimeConfig: targetToolRuntimeConfig, item, session})
+  toolEndpointToolRuntimeConfig = await getWithResolvedToolRuntimeConfigFunction({toolRuntimeConfig: toolEndpointToolRuntimeConfig, item, session})
+  requestToolRuntimeConfig = await getWithResolvedToolRuntimeConfigFunction({toolRuntimeConfig: requestToolRuntimeConfig, item, session})
+
   const overallToolRuntimeConfig = serverWideToolRuntimeConfig;
 
   // simplify the toolBaseUrl to an url string if it is an object by applying some defaults before sending it to the tool
@@ -171,11 +188,19 @@ function getCompiledToolRuntimeConfig(
     toolRuntimeConfig.id = item._id;
   }
 
-  // if endpoint defines tool runtime config, apply it
-  if (toolEndpointConfig && toolEndpointConfig.toolRuntimeConfig) {
+  // if the target defines tool runtime config, apply it
+  if (targetToolRuntimeConfig) {
     toolRuntimeConfig = Object.assign(
       toolRuntimeConfig,
-      toolEndpointConfig.toolRuntimeConfig
+      targetToolRuntimeConfig
+    );
+  }
+
+  // if endpoint defines tool runtime config, apply it
+  if (toolEndpointToolRuntimeConfig) {
+    toolRuntimeConfig = Object.assign(
+      toolRuntimeConfig,
+      toolEndpointToolRuntimeConfig
     );
   }
 

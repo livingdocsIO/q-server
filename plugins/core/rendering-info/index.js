@@ -144,7 +144,11 @@ function getPostRenderingInfoRoute(config) {
           request.params.target,
           requestToolRuntimeConfig,
           request.query.ignoreInactive,
-          itemStateInDb
+          itemStateInDb,
+          {
+            credentials: request.auth.credentials,
+            artifacts: request.auth.artifacts
+          }
         );
       } catch (err) {
         if (err.isBoom) {
@@ -167,10 +171,10 @@ module.exports = {
       new Error("server.settings.app.tools.get needs to be a function")
     );
 
-    server.method("renderingInfo.getRenderingInfoForItem", async (item, target, requestToolRuntimeConfig, ignoreInactive, itemStateInDb) => {
+    server.method("renderingInfo.getRenderingInfoForItem", async (item, target, requestToolRuntimeConfig, ignoreInactive, itemStateInDb, session) => {
         const endpointConfig = server.settings.app.tools.get(
           `/${item.tool}/endpoint`,
-          { target: target }
+          { target, session }
         );
 
         if (!endpointConfig) {
@@ -181,7 +185,7 @@ module.exports = {
           );
         }
 
-        const targetConfig = server.settings.app.targets.get(`/${target}`);
+        const targetConfig = server.settings.app.targets.get(`/${target}`, { session });
         if (!targetConfig) throw new Error(`${target} not configured`);
 
         let toolEndpointConfig;
@@ -195,17 +199,26 @@ module.exports = {
         }
 
         // compile the toolRuntimeConfig from runtimeConfig from server, tool endpoint and request
-        const toolRuntimeConfig = getCompiledToolRuntimeConfig(item, {
-          serverWideToolRuntimeConfig: options.get("/toolRuntimeConfig", {
-            target: target,
-            tool: item.tool
-          }),
-          toolEndpointConfig: toolEndpointConfig,
-          requestToolRuntimeConfig: requestToolRuntimeConfig
-        });
+        const toolRuntimeConfig = await getCompiledToolRuntimeConfig(
+          item, 
+          {
+            serverWideToolRuntimeConfig: options.get("/toolRuntimeConfig", {
+              target: target,
+              tool: item.tool,
+              session
+            }),
+            targetToolRuntimeConfig: server.settings.app.targets.get(`/${target}/toolRuntimeConfig`, {
+              session
+            }),
+            toolEndpointToolRuntimeConfig: toolEndpointConfig.toolRuntimeConfig,
+            requestToolRuntimeConfig: requestToolRuntimeConfig
+          },
+          session
+        );
 
         const baseUrl = server.settings.app.tools.get(`/${item.tool}/baseUrl`, {
-          target: target
+          target: target,
+          session
         });
 
         return getRenderingInfo(
@@ -235,7 +248,8 @@ module.exports = {
             target,
             requestToolRuntimeConfig,
             ignoreInactive,
-            itemStateInDb
+            itemStateInDb,
+            session
           );
         } catch (err) {
           throw err;
