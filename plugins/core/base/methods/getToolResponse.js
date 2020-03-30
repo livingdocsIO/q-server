@@ -52,6 +52,10 @@ exports.getToolResponse = async function(options, request, h) {
     );
   }
 
+  if (toolResponse.res.statusCode !== 200) {
+    return toolResponse
+  }
+
   // prepare the response to add more headers
   const response = h.response(toolResponse.payload);
 
